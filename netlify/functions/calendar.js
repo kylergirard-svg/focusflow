@@ -20,18 +20,19 @@ exports.handler = async function(event, context) {
     if (!response.ok) throw new Error('Failed to fetch calendar');
     const icalData = await response.text();
     const events = parseICal(icalData);
-    return { statusCode: 200, headers, body: JSON.stringify({ events }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ events: events }) };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
 
 function parseICal(data) {
-  const events = [];
-  const lines = unfoldLines(data);
-  let currentEvent = null;
+  var events = [];
+  var lines = unfoldLines(data);
+  var currentEvent = null;
 
-  for (const line of lines) {
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
     if (line === 'BEGIN:VEVENT') {
       currentEvent = {};
     } else if (line === 'END:VEVENT' && currentEvent) {
@@ -48,57 +49,58 @@ function parseICal(data) {
       }
       currentEvent = null;
     } else if (currentEvent) {
-      const { key, params, value } = parseLine(line);
-      switch (key) {
-        case 'SUMMARY':
-          currentEvent.summary = unescapeIcal(value);
-          break;
-        case 'DTSTART':
-          currentEvent.dtstart = parseICalDate(value, params);
-          currentEvent.allDay = isDateOnly(value, params);
-          break;
-        case 'DTEND':
-          currentEvent.dtend = parseICalDate(value, params);
-          break;
-        case 'LOCATION':
-          currentEvent.location = unescapeIcal(value);
-          break;
-        case 'DESCRIPTION':
-          currentEvent.description = unescapeIcal(value).slice(0, 200);
-          break;
-        case 'STATUS':
-          currentEvent.status = value;
-          break;
-        case 'RRULE':
-          currentEvent.rrule = value;
-          break;
+      var parsed = parseLine(line);
+      var key = parsed.key;
+      var params = parsed.params;
+      var value = parsed.value;
+      if (key === 'SUMMARY') {
+        currentEvent.summary = unescapeIcal(value);
+      } else if (key === 'DTSTART') {
+        currentEvent.dtstart = parseICalDate(value, params);
+        currentEvent.allDay = isDateOnly(value, params);
+      } else if (key === 'DTEND') {
+        currentEvent.dtend = parseICalDate(value, params);
+      } else if (key === 'LOCATION') {
+        currentEvent.location = unescapeIcal(value);
+      } else if (key === 'DESCRIPTION') {
+        currentEvent.description = unescapeIcal(value).slice(0, 200);
+      } else if (key === 'STATUS') {
+        currentEvent.status = value;
+      } else if (key === 'RRULE') {
+        currentEvent.rrule = value;
       }
     }
   }
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const weekAhead = new Date(now);
+  var now = new Date();
+  var todayStr = now.toISOString().slice(0, 10);
+  var weekAhead = new Date(now);
   weekAhead.setDate(weekAhead.getDate() + 7);
-  const weekAheadStr = weekAhead.toISOString().slice(0, 10);
+  var weekAheadStr = weekAhead.toISOString().slice(0, 10);
 
-  const expanded = [];
-  for (const evt of events) {
+  var expanded = [];
+  for (var j = 0; j < events.length; j++) {
+    var evt = events[j];
     if (evt.recurrence) {
-      const instances = expandRecurrence(evt, todayStr, weekAheadStr);
-      expanded.push(...instances);
+      var instances = expandRecurrence(evt, todayStr, weekAheadStr);
+      for (var k = 0; k < instances.length; k++) {
+        expanded.push(instances[k]);
+      }
     } else {
       expanded.push(evt);
     }
   }
 
-  const filtered = expanded.filter(evt => {
+  var filtered = expanded.filter(function(evt) {
     if (!evt.start) return false;
-    const evtDate = evt.start.slice(0, 10);
+    var evtDate = evt.start.slice(0, 10);
     return evtDate >= todayStr && evtDate <= weekAheadStr;
   });
 
-  filtered.sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  filtered.sort(function(a, b) {
+    return (a.start || '').localeCompare(b.start || '');
+  });
+
   return filtered;
 }
 
@@ -107,34 +109,34 @@ function unfoldLines(data) {
 }
 
 function parseLine(line) {
-  const colonIdx = line.indexOf(':');
+  var colonIdx = line.indexOf(':');
   if (colonIdx === -1) return { key: '', params: '', value: '' };
-  const left = line.slice(0, colonIdx);
-  const value = line.slice(colonIdx + 1);
-  const semiIdx = left.indexOf(';');
-  if (semiIdx === -1) return { key: left.toUpperCase(), params: '', value };
-  return { key: left.slice(0, semiIdx).toUpperCase(), params: left.slice(semiIdx + 1), value };
+  var left = line.slice(0, colonIdx);
+  var value = line.slice(colonIdx + 1);
+  var semiIdx = left.indexOf(';');
+  if (semiIdx === -1) return { key: left.toUpperCase(), params: '', value: value };
+  return { key: left.slice(0, semiIdx).toUpperCase(), params: left.slice(semiIdx + 1), value: value };
 }
 
 function parseICalDate(value, params) {
   if (/^\d{8}$/.test(value)) {
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`;
+    return value.slice(0,4) + '-' + value.slice(4,6) + '-' + value.slice(6,8);
   }
   if (/^\d{8}T\d{6}/.test(value)) {
-    const y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
-    const hh = value.slice(9,11), mm = value.slice(11,13), ss = value.slice(13,15);
-    const isUTC = value.endsWith('Z');
+    var y = value.slice(0,4), m = value.slice(4,6), d = value.slice(6,8);
+    var hh = value.slice(9,11), mm = value.slice(11,13), ss = value.slice(13,15);
+    var isUTC = value.endsWith('Z');
     if (isUTC) {
-      const dt = new Date(Date.UTC(+y, +m-1, +d, +hh, +mm, +ss));
+      var dt = new Date(Date.UTC(+y, +m-1, +d, +hh, +mm, +ss));
       return dt.toISOString();
     }
-    return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+    return y + '-' + m + '-' + d + 'T' + hh + ':' + mm + ':' + ss;
   }
   return value;
 }
 
 function isDateOnly(value, params) {
-  if (params && params.toUpperCase().includes('VALUE=DATE')) return true;
+  if (params && params.toUpperCase().indexOf('VALUE=DATE') !== -1) return true;
   return /^\d{8}$/.test(value);
 }
 
@@ -143,33 +145,33 @@ function unescapeIcal(str) {
 }
 
 function expandRecurrence(evt, startRange, endRange) {
-  const instances = [];
-  const rule = parseRRule(evt.recurrence);
+  var instances = [];
+  var rule = parseRRule(evt.recurrence);
   if (!rule || !evt.start) return [evt];
 
-  const baseDate = new Date(evt.start.slice(0, 10) + 'T12:00:00Z');
-  const rangeStart = new Date(startRange + 'T00:00:00Z');
-  const rangeEnd = new Date(endRange + 'T23:59:59Z');
-  const until = rule.until ? new Date(rule.until + 'T23:59:59Z') : new Date(rangeEnd);
-  const count = rule.count || 1000;
-  const interval = rule.interval || 1;
-  const baseTime = evt.start.length > 10 ? evt.start.slice(10) : '';
-  const duration = getDurationMs(evt.start, evt.end);
+  var baseDate = new Date(evt.start.slice(0, 10) + 'T12:00:00Z');
+  var rangeStart = new Date(startRange + 'T00:00:00Z');
+  var rangeEnd = new Date(endRange + 'T23:59:59Z');
+  var until = rule.until ? new Date(rule.until + 'T23:59:59Z') : new Date(rangeEnd);
+  var count = rule.count || 1000;
+  var interval = rule.interval || 1;
+  var baseTime = evt.start.length > 10 ? evt.start.slice(10) : '';
+  var duration = getDurationMs(evt.start, evt.end);
 
-  let current = new Date(baseDate);
-  let generated = 0;
+  var current = new Date(baseDate);
+  var generated = 0;
 
-  for (let i = 0; i < 2000 && current <= until && current <= rangeEnd && generated < count; i++) {
+  for (var i = 0; i < 2000 && current <= until && current <= rangeEnd && generated < count; i++) {
     if (current >= rangeStart && current <= rangeEnd) {
-      const dateStr = current.toISOString().slice(0, 10);
-      const newStart = baseTime ? dateStr + baseTime : dateStr;
-      const newEnd = duration && evt.end ? computeEnd(newStart, duration) : evt.end;
-      instances.push({
-        ...evt,
-        start: newStart,
-        end: newEnd,
-        recurrence: null,
-      });
+      var dateStr = current.toISOString().slice(0, 10);
+      var newStart = baseTime ? dateStr + baseTime : dateStr;
+      var newEnd = (duration && evt.end) ? computeEnd(newStart, duration) : evt.end;
+      var copy = {};
+      for (var prop in evt) { copy[prop] = evt[prop]; }
+      copy.start = newStart;
+      copy.end = newEnd;
+      copy.recurrence = null;
+      instances.push(copy);
     }
     generated++;
     current = advanceDate(current, rule.freq, interval);
@@ -181,14 +183,37 @@ function expandRecurrence(evt, startRange, endRange) {
 
 function parseRRule(rrule) {
   if (!rrule) return null;
-  const parts = {};
-  rrule.split(';').forEach(part => {
-    const [k, v] = part.split('=');
-    if (k && v) parts[k.toUpperCase()] = v;
-  });
+  var parts = {};
+  var pieces = rrule.split(';');
+  for (var i = 0; i < pieces.length; i++) {
+    var kv = pieces[i].split('=');
+    if (kv[0] && kv[1]) parts[kv[0].toUpperCase()] = kv[1];
+  }
   return {
     freq: parts.FREQ || 'YEARLY',
     interval: parseInt(parts.INTERVAL) || 1,
     until: parts.UNTIL ? parseICalDate(parts.UNTIL, '') : null,
     count: parts.COUNT ? parseInt(parts.COUNT) : null,
     byday: parts.BYDAY || null,
+  };
+}
+
+function advanceDate(date, freq, interval) {
+  var d = new Date(date);
+  if (freq === 'DAILY') { d.setDate(d.getDate() + interval); }
+  else if (freq === 'WEEKLY') { d.setDate(d.getDate() + 7 * interval); }
+  else if (freq === 'MONTHLY') { d.setMonth(d.getMonth() + interval); }
+  else if (freq === 'YEARLY') { d.setFullYear(d.getFullYear() + interval); }
+  return d;
+}
+
+function getDurationMs(start, end) {
+  if (!start || !end) return 0;
+  return new Date(end).getTime() - new Date(start).getTime();
+}
+
+function computeEnd(start, durationMs) {
+  var d = new Date(start);
+  d.setTime(d.getTime() + durationMs);
+  return d.toISOString();
+}
