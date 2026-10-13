@@ -157,6 +157,7 @@
   .habit-info { flex: 1; }
   .habit-name { font-size: 15px; font-weight: 500; }
   .habit-detail { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .lunch-menu-link { display: inline-block; margin-top: 6px; font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border, #444); color: inherit; text-decoration: none; }
 
   /* ── Task Cards ── */
   .task-card {
@@ -480,6 +481,22 @@
   .comeback-btn.primary { background: var(--accent); color: var(--bg); }
   .comeback-btn.secondary { background: var(--surface-2); color: var(--text-mid); border: 1px solid var(--border); }
 
+  /* ── SMS Inbox ── */
+  .sms-inbox-banner {
+    background: linear-gradient(135deg, rgba(76,175,130,0.1), rgba(232,150,74,0.08));
+    border: 1px solid rgba(76,175,130,0.25); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .sms-inbox-banner h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .sms-item {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 6px;
+  }
+  .sms-item .sms-body { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .sms-item .sms-meta { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+  .sms-item .sms-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sms-item.processed { opacity: 0.35; pointer-events: none; }
+
   .settings-row { display: flex; justify-content: center; gap: 10px; margin-top: 24px; }
   .s-btn {
     background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
@@ -536,6 +553,7 @@
   <!-- TODAY -->
   <div class="section active" id="sec-today">
     <div id="comeback-container"></div>
+    <!-- SMS inbox retired -->
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div class="section-label" style="margin:20px 0 10px 2px;">Daily Habits</div>
       <button class="s-btn" id="add-habit-btn" style="font-size:11px;padding:5px 10px;margin-top:12px;">+ Add Habit</button>
@@ -872,6 +890,8 @@
   if (!D.brainDump) D.brainDump = [];
   // Migration: add lastGateDate tracking for comeback mechanism
   if (!D.lastGateDate) D.lastGateDate = null;
+  // Migration: add processed SMS tracking
+  if (!D.processedSmsIds) D.processedSmsIds = [];
   // Migration: add quarterly financial dashboard if not present
   if (!D.recurring.find(r => r.id === 'r_fin_dash')) {
     D.recurring.push({
@@ -1012,6 +1032,113 @@
     });
   }
 
+  // ══ SMS INBOX ══
+  async function fetchSmsInbox() {
+    try {
+      const res = await fetch('/.netlify/functions/sms-inbox');
+      if (!res.ok) throw new Error('SMS inbox fetch failed');
+      const data = await res.json();
+      const messages = data.messages || [];
+      // Filter out already-processed messages
+      const unprocessed = messages.filter(m => !D.processedSmsIds.includes(m.sid));
+      renderSmsInbox(unprocessed);
+    } catch (err) {
+      console.error('SMS inbox error:', err);
+      // Silently fail — SMS inbox is optional
+    }
+  }
+
+  function renderSmsInbox(messages) {
+    const container = document.getElementById('sms-inbox-container');
+    if (messages.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    let html = `
+      <div class="sms-inbox-banner">
+        <h4>📱 ${messages.length} text${messages.length > 1 ? 's' : ''} to sort</h4>
+        <p style="font-size:12px;color:var(--text-dim);margin:0;">Texted in via SMS — tap to add to your task list.</p>
+      </div>`;
+
+    messages.forEach(m => {
+      const date = new Date(m.dateSent);
+      const timeAgo = formatTimeAgo(date);
+      const fromLabel = m.from === ('+1' + (process.env?.MY_PHONE_NUMBER || '').replace(/\D/g,'')) ? 'You' : m.from;
+
+      html += `
+        <div class="sms-item" id="sms-${m.sid}">
+          <div class="sms-body">"${m.body}"</div>
+          <div class="sms-meta">${timeAgo}</div>
+          <div class="sms-actions">
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="high">🔴 High</button>
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="med">🟠 Med</button>
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="low">🔵 Low</button>
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="horizon">🔭 Horizon</button>
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="dump">💭 Brain Dump</button>
+            <button class="triage-btn" data-smssid="${m.sid}" data-smsbody="${encodeURIComponent(m.body)}" data-smsaction="dismiss">Dismiss</button>
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+
+    // Attach handlers
+    container.querySelectorAll('.triage-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sid = btn.dataset.smssid;
+        const body = decodeURIComponent(btn.dataset.smsbody);
+        const action = btn.dataset.smsaction;
+
+        if (action === 'high' || action === 'med' || action === 'low') {
+          D.tasks.push({
+            id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+            title: body, category: 'general', dueDate: null,
+            createdDate: todayStr(), status: 'active', snoozedUntil: null,
+            recurringId: null, priority: action, sortOrder: D.tasks.length,
+          });
+        } else if (action === 'horizon') {
+          D.horizons.push({
+            id: 'hz_' + Date.now(), title: body, notes: 'Captured via SMS',
+            category: 'general', createdDate: todayStr(), status: 'active',
+            sortOrder: D.horizons.length,
+          });
+        } else if (action === 'dump') {
+          D.brainDump.push({
+            id: 'bd_' + Date.now(), text: body, note: 'Captured via SMS',
+            createdDate: todayStr(),
+          });
+        }
+        // Mark as processed regardless of action
+        D.processedSmsIds.push(sid);
+        // Keep only last 200 SIDs to prevent storage bloat
+        if (D.processedSmsIds.length > 200) D.processedSmsIds = D.processedSmsIds.slice(-200);
+        save(D);
+
+        // Visual feedback
+        const item = document.getElementById('sms-' + sid);
+        if (item) { item.classList.add('processed'); }
+
+        // Remove banner if all processed
+        const remaining = container.querySelectorAll('.sms-item:not(.processed)');
+        if (remaining.length === 0) {
+          setTimeout(() => { container.innerHTML = ''; renderApp(); }, 500);
+        }
+      });
+    });
+  }
+
+  function formatTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
+
   // ══ CALENDAR ══
   let calendarEvents = [];
 
@@ -1111,7 +1238,8 @@
 
   function initGate() {
     generateRecurring();
-    fetchCalendar(); // Fetch calendar data on load
+    fetchCalendar();
+    // SMS inbox retired (Twilio verification rejected, Oct 2026)
     const today = todayStr();
     if (D.gateLog[today]) {
       gateEl.classList.add('hide');
@@ -1229,6 +1357,7 @@
           <div class="habit-info">
             <div class="habit-name">${h.icon} ${h.name}</div>
             <div class="habit-detail">${formatHabitDays(h.days)}</div>
+            ${/lunch/i.test(h.name) ? lunchMenuLink() : ''}
           </div>
           <button class="t-btn" style="flex:0;padding:4px 10px;font-size:11px;" data-delhid="${h.id}">✕</button>
         </div>`;
@@ -1248,6 +1377,18 @@
         }
       });
     });
+  }
+
+  // Hot lunch menu link: before noon shows today's menu, after noon the next school day's
+  // (weekends roll to Monday). Opens the live OLG Flik/Nutrislice menu for that date.
+  function lunchMenuLink() {
+    const d = new Date();
+    if (d.getHours() >= 12) d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    const pad = n => String(n).padStart(2, '0');
+    const iso = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const label = `${shortDays[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`;
+    return `<a class="lunch-menu-link" href="https://olgschool.flikisdining.com/menu/dining-hall/lunch/${iso}" target="_blank" rel="noopener">🍽️ Hot lunch menu · ${label}</a>`;
   }
 
   function formatHabitDays(days) {
