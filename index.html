@@ -1274,7 +1274,7 @@
   function renderCalendar() {
     const today = todayStr();
     const tomorrow = addDays(today, 1);
-    const evDate = e => e.start ? e.start.slice(0,10) : '';
+    const evDate = e => e.date || (e.start ? e.start.slice(0,10) : '');
     const todayEvents = calendarEvents.filter(e => evDate(e) === today);
     const tomorrowEvents = calendarEvents.filter(e => evDate(e) === tomorrow);
     const laterEvents = calendarEvents.filter(e => evDate(e) > tomorrow);
@@ -1337,7 +1337,7 @@
 
   function updateGateCalendar() {
     const today = todayStr();
-    const todayEvents = calendarEvents.filter(e => e.start && e.start.slice(0,10) === today);
+    const todayEvents = calendarEvents.filter(e => (e.date || (e.start && e.start.slice(0,10))) === today);
     const gateCalEl = document.getElementById('gate-cal-info');
     if (gateCalEl && todayEvents.length > 0) {
       gateCalEl.innerHTML = `<div class="gate-stat"><span class="label">📅 Family calendar</span><span class="value">${todayEvents.length} event${todayEvents.length>1?'s':''}</span></div>`;
