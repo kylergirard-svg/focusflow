@@ -173,6 +173,10 @@
   .seg button { border: 0; background: transparent; color: var(--text-dim); font: 500 13px var(--font, inherit); padding: 8px 14px; border-radius: 8px; min-height: 36px; cursor: pointer; }
   .seg button.on { background: var(--accent); color: #12141a; font-weight: 600; }
   .lunch-sum { font-size: 12px; color: var(--text-dim); margin-top: 10px; }
+  .dinner-row { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: flex; gap: 10px; align-items: baseline; }
+  .dinner-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-dim); flex: 0 0 auto; }
+  .dinner-text { font-size: 15px; line-height: 1.35; }
+  .dinner-text.none { font-size: 13px; color: var(--text-dim); }
   details.ff-coll { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; }
   details.ff-coll > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 52px; padding: 0 16px; cursor: pointer; font-size: 15px; font-weight: 500; }
   details.ff-coll > summary::-webkit-details-marker { display: none; }
@@ -1361,6 +1365,7 @@
     generateRecurring();
     fetchCalendar();
     fetchKidsSchool();
+    fetchDinners();
     // SMS inbox retired (Twilio verification rejected, Oct 2026)
     const today = todayStr();
     if (D.gateLog[today]) {
@@ -1577,6 +1582,21 @@
 
   // ── Lunch card: per-kid Hot lunch / Pack for the next lunch ──
   const KIDS = ['Amelia', 'Scottie'];
+  // Weekday Dinners (published Google Doc, read-only): { 'YYYY-MM-DD': 'Tacos' }
+  let dinnersByDate = null;
+  async function fetchDinners() {
+    try {
+      const res = await fetch('/.netlify/functions/dinners');
+      if (!res.ok) throw new Error('Dinners fetch failed');
+      const data = await res.json();
+      dinnersByDate = {};
+      (data.dinners || []).forEach(d => { dinnersByDate[d.date] = d.text; });
+    } catch (err) {
+      console.error('Dinners error:', err);
+      dinnersByDate = null;
+    }
+    renderLunchCard();
+  }
   function lunchTarget() {
     const d = new Date();
     if (d.getHours() >= 12) d.setDate(d.getDate() + 1);
@@ -1593,7 +1613,7 @@
     const decided = KIDS.filter(k => plan[k]).length;
     el.innerHTML = `
       <div class="lunch-head">
-        <div class="section-label">🥪 Lunch · ${label}</div>
+        <div class="section-label">🥪 Lunch &amp; Dinner · ${label}</div>
         <a class="lunch-link" href="https://olgschool.flikisdining.com/menu/dining-hall/lunch/${iso}" target="_blank" rel="noopener">🍽️ Hot lunch menu</a>
       </div>
       ${KIDS.map(k => `
@@ -1603,7 +1623,10 @@
             <button class="${plan[k]==='pack'?'on':''}" data-kid="${k}" data-lunch="pack">Pack</button>
           </div>
         </div>`).join('')}
-      <div class="lunch-sum">${decided === KIDS.length ? (packCount === 0 ? 'No lunches to pack' : `Pack ${packCount} lunch${packCount>1?'es':''}`) : 'Check the menu, then pick for each kid'}</div>`;
+      <div class="lunch-sum">${decided === KIDS.length ? (packCount === 0 ? 'No lunches to pack' : `Pack ${packCount} lunch${packCount>1?'es':''}`) : 'Check the menu, then pick for each kid'}</div>
+      ${dinnersByDate ? `<div class="dinner-row"><span class="dinner-label">Dinner</span>${dinnersByDate[iso]
+        ? `<span class="dinner-text">${String(dinnersByDate[iso]).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span>`
+        : '<span class="dinner-text none">Nothing planned in Weekday Dinners</span>'}</div>` : ''}`;
     el.querySelectorAll('[data-lunch]').forEach(b => b.addEventListener('click', () => {
       const p = D.lunchPlan[iso] || (D.lunchPlan[iso] = {});
       p[b.dataset.kid] = p[b.dataset.kid] === b.dataset.lunch ? undefined : b.dataset.lunch;
