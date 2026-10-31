@@ -157,6 +157,40 @@
   .habit-info { flex: 1; }
   .habit-name { font-size: 15px; font-weight: 500; }
   .habit-detail { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  /* ── v4 Today layout ── */
+  .brain-dump-fab { display: none !important; }
+  .ff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .ff-card .section-label { margin: 0 0 10px 0; }
+  .ff-card .cal-card { margin-bottom: 6px; }
+  .day-divider { height: 1px; background: var(--border); margin: 12px 0 10px; }
+  .tomorrow-events { opacity: 0.72; }
+  .cal-empty { font-size: 13px; color: var(--text-dim); padding: 4px 0; }
+  .lunch-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .lunch-head .section-label { margin: 0; }
+  .lunch-link { font-size: 13px; color: var(--accent); text-decoration: none; }
+  .lunch-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 14px; }
+  .seg { display: flex; background: var(--bg, #111318); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--text-dim); font: 500 13px var(--font, inherit); padding: 8px 14px; border-radius: 8px; min-height: 36px; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #12141a; font-weight: 600; }
+  .lunch-sum { font-size: 12px; color: var(--text-dim); margin-top: 10px; }
+  details.ff-coll { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; }
+  details.ff-coll > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 52px; padding: 0 16px; cursor: pointer; font-size: 15px; font-weight: 500; }
+  details.ff-coll > summary::-webkit-details-marker { display: none; }
+  details.ff-coll > summary .cnt { font-size: 13px; color: var(--text-dim); font-weight: 400; margin-left: 8px; }
+  details.ff-coll > summary .chev { font-size: 13px; color: var(--text-dim); }
+  details.ff-coll > summary .chev::after { content: 'Show'; }
+  details.ff-coll[open] > summary .chev::after { content: 'Hide'; }
+  details.ff-coll > .coll-body { padding: 0 10px 10px; }
+  .pdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; vertical-align: middle; }
+  .overdue-card { background: rgba(224,90,90,0.08); border: 1px solid rgba(224,90,90,0.45); border-radius: 14px; padding: 14px 12px 6px; margin-bottom: 12px; }
+  .overdue-card .section-label { color: var(--red); margin: 0 4px 10px; }
+  .someday-tag { color: var(--teal, #4fb3a9); }
+  .ks-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 15px; line-height: 1.35; }
+  .ks-item:last-of-type { border-bottom: 0; }
+  .ks-box { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; border: 2px solid var(--text-dim); border-radius: 5px; box-sizing: border-box; }
+  .ks-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px 4px; font-size: 13px; color: var(--text-dim); }
+  .ks-foot a { color: var(--accent); text-decoration: none; }
+  .backup-note { font-size: 12px; color: var(--text-dim); text-align: center; margin-top: 8px; }
   .lunch-menu-link { display: inline-block; margin-top: 6px; font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border, #444); color: inherit; text-decoration: none; }
 
   /* ── Task Cards ── */
@@ -546,39 +580,55 @@
   <div class="tabs">
     <button class="tab active" data-tab="today">Today</button>
     <button class="tab" data-tab="tasks">Tasks <span class="badge" id="task-badge" style="display:none;"></span></button>
-    <button class="tab" data-tab="horizons">Horizons</button>
     <button class="tab" data-tab="recurring">Recurring</button>
   </div>
 
   <!-- TODAY -->
   <div class="section active" id="sec-today">
     <div id="comeback-container"></div>
-    <!-- SMS inbox retired -->
+
+    <div class="ff-card">
+      <div class="section-label">📅 Family Today &amp; Tomorrow</div>
+      <div id="cal-today"><div class="cal-loading">Loading calendar…</div></div>
+    </div>
+
+    <div class="ff-card" id="lunch-card"></div>
+
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div class="section-label" style="margin:20px 0 10px 2px;">Daily Habits</div>
-      <button class="s-btn" id="add-habit-btn" style="font-size:11px;padding:5px 10px;margin-top:12px;">+ Add Habit</button>
+      <div class="section-label" style="margin:8px 0 10px 2px;">Daily Habits</div>
+      <button class="s-btn" id="add-habit-btn" style="font-size:11px;padding:5px 10px;">+ Add Habit</button>
     </div>
     <div id="habit-list"></div>
 
-    <div class="section-label">📅 Family Calendar — Today</div>
-    <div id="cal-today"><div class="cal-loading">Loading calendar…</div></div>
-
     <div id="sunday-review-container"></div>
 
-    <div class="section-label" id="overdue-label" style="display:none;">⚠ Overdue</div>
-    <div id="overdue-tasks"></div>
+    <details class="ff-coll" id="week-details">
+      <summary><span>This week<span class="cnt" id="week-count"></span></span><span class="chev"></span></summary>
+      <div class="coll-body"><div id="cal-week"><div class="cal-loading">Loading…</div></div></div>
+    </details>
 
-    <div class="section-label" id="high-today-label" style="display:none;">🔴 High Priority</div>
-    <div id="high-today-tasks"></div>
+    <div class="overdue-card" id="overdue-wrap" style="display:none;">
+      <div class="section-label">⚠ Overdue</div>
+      <div id="overdue-tasks"></div>
+    </div>
 
-    <div class="section-label" id="med-today-label" style="display:none;">🟠 Medium Priority</div>
-    <div id="med-today-tasks"></div>
+    <details class="ff-coll" id="grp-kids" style="display:none;">
+      <summary><span>🎒 Kids &amp; School<span class="cnt" id="cnt-kids"></span></span><span class="chev"></span></summary>
+      <div class="coll-body" id="kids-school-list"></div>
+    </details>
 
-    <div class="section-label" id="low-today-label" style="display:none;">🔵 Low Priority — Weekly Review</div>
-    <div id="low-today-tasks"></div>
-
-    <div class="section-label">📅 Upcoming This Week</div>
-    <div id="cal-week"><div class="cal-loading">Loading…</div></div>
+    <details class="ff-coll" id="grp-high" style="display:none;">
+      <summary><span><span class="pdot" style="background:var(--red);"></span>High priority<span class="cnt" id="cnt-high"></span></span><span class="chev"></span></summary>
+      <div class="coll-body" id="high-today-tasks"></div>
+    </details>
+    <details class="ff-coll" id="grp-med" style="display:none;">
+      <summary><span><span class="pdot" style="background:var(--accent);"></span>Medium priority<span class="cnt" id="cnt-med"></span></span><span class="chev"></span></summary>
+      <div class="coll-body" id="med-today-tasks"></div>
+    </details>
+    <details class="ff-coll" id="grp-low" style="display:none;">
+      <summary><span><span class="pdot" style="background:#5b9bd5;"></span>Low priority<span class="cnt" id="cnt-low"></span></span><span class="chev"></span></summary>
+      <div class="coll-body" id="low-today-tasks"></div>
+    </details>
   </div>
 
   <!-- TASKS -->
@@ -600,7 +650,7 @@
   </div>
 
   <!-- HORIZONS -->
-  <div class="section" id="sec-horizons">
+  <div class="section" id="sec-horizons" style="display:none !important;">
     <div id="monthly-review-container"></div>
     <div id="horizons-list"></div>
     <div class="settings-row">
@@ -620,6 +670,12 @@
     <button class="s-btn" id="export-btn">📋 Copy Summary</button>
     <button class="s-btn" id="reset-btn">🔄 Reset Day</button>
   </div>
+  <div class="settings-row">
+    <button class="s-btn" id="backup-btn">⬇️ Back Up</button>
+    <button class="s-btn" id="restore-btn">⬆️ Restore</button>
+    <input type="file" id="restore-file" accept=".json,application/json" style="display:none;">
+  </div>
+  <div class="backup-note" id="backup-note"></div>
 </div>
 
 <!-- Quick Add -->
@@ -679,11 +735,11 @@
       </button>
       <button class="pri-change-opt" data-newpri="low">
         <span class="dot low"></span>
-        <div><div>Low Priority</div><div class="desc">Shows on Sundays only. Eventual to-do.</div></div>
+        <div><div>Low Priority</div><div class="desc">Eventual to-do. Collapsed on Today.</div></div>
       </button>
       <button class="pri-change-opt" data-newpri="horizon">
         <span class="dot" style="background:var(--teal);"></span>
-        <div><div>Horizon</div><div class="desc">Long-term priority. Monthly review.</div></div>
+        <div><div>Someday</div><div class="desc">Long-term idea. Bottom of Low priority.</div></div>
       </button>
     </div>
     <button class="snooze-cancel" id="pri-cancel">Cancel</button>
@@ -829,7 +885,8 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(SK)) || null; } catch { return null; } };
   const save = (d) => localStorage.setItem(SK, JSON.stringify(d));
 
-  const todayStr = () => new Date().toISOString().slice(0,10);
+  // Local date (the old toISOString() version returned UTC, so after ~7 PM Central it already showed tomorrow)
+  const todayStr = () => { const d = new Date(); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const shortDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const fmtDate = (d) => new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -851,7 +908,7 @@
     return {
       habits: [
         { id: 'h1', name: 'Take prescription', icon: '💊', days: [0,1,2,3,4,5,6], streak: 0 },
-        { id: 'h2', name: "Make Amelia's lunch", icon: '🥪', days: [0,1,2,3,4], streak: 0 },
+        { id: 'h2', name: "Make kids' lunch", icon: '🥪', days: [1,2,3,4,5], streak: 0 },
         { id: 'h3', name: 'Review To Do List / Complete a Task', icon: '✅', days: [0,1,2,3,4,5,6], streak: 0 },
       ],
       habitLog: {},
@@ -883,6 +940,35 @@
   if (!D.habits.find(h => h.id === 'h3')) {
     D.habits.push({ id: 'h3', name: 'Review To Do List / Complete a Task', icon: '✅', days: [0,1,2,3,4,5,6], streak: 0 });
   }
+  // Migration (Oct 2026): lunch habit covers both kids, Mon–Fri. Runs once.
+  if (!D.lunchHabitV2) {
+    const lh = D.habits.find(h => h.id === 'h2' || /amelia.*lunch/i.test(h.name));
+    if (lh) { lh.name = "Make kids' lunch"; lh.days = [1,2,3,4,5]; }
+    D.lunchHabitV2 = true;
+  }
+  // Migration v4 (Oct 2026): Horizons become Low-priority "Someday" tasks; unprocessed brain dump notes become Low tasks. Runs once.
+  if (!D.v4Migrated) {
+    (D.horizons || []).forEach(h => {
+      if (h.status !== 'active') return;
+      D.tasks.push({
+        id: 'task_hz_' + h.id, title: h.title, category: h.category || 'general', dueDate: null,
+        createdDate: h.createdDate || todayStr(), status: 'active', snoozedUntil: null, recurringId: null,
+        priority: 'low', someday: true, notes: h.notes || '', sortOrder: 100000 + (h.sortOrder || 0),
+      });
+      h.status = 'migrated';
+    });
+    (D.brainDump || []).forEach((b, i) => {
+      if (!b || !b.text || b.processed) return;
+      D.tasks.push({
+        id: 'task_bd_' + (b.id || i), title: b.text, category: 'general', dueDate: null,
+        createdDate: todayStr(), status: 'active', snoozedUntil: null, recurringId: null,
+        priority: 'low', sortOrder: D.tasks.length,
+      });
+      b.processed = true;
+    });
+    D.v4Migrated = true;
+  }
+  if (!D.lunchPlan) D.lunchPlan = {};
   // Migration: add horizons array if missing
   if (!D.horizons) D.horizons = [];
   D.horizons.forEach((h, i) => { if (h.sortOrder === undefined) h.sortOrder = i; });
@@ -1157,36 +1243,71 @@
     }
   }
 
+  // ── Kids & School (published Google Doc, read-only) ──
+  const KIDS_DOC_EDIT_URL = 'https://docs.google.com/document/d/132NcFIEyJpga1ygOF-m7n1oSxcW0ZQDyKg6PtJw85iA/edit';
+  async function fetchKidsSchool() {
+    const grp = document.getElementById('grp-kids');
+    try {
+      const res = await fetch('/.netlify/functions/kids-school');
+      if (!res.ok) throw new Error('Kids & School fetch failed');
+      const data = await res.json();
+      renderKidsSchool(data.items || []);
+    } catch (err) {
+      console.error('Kids & School error:', err);
+      if (grp) grp.style.display = 'none';
+    }
+  }
+  function renderKidsSchool(items) {
+    const grp = document.getElementById('grp-kids');
+    const list = document.getElementById('kids-school-list');
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const open = items.filter(i => !i.done);
+    const doneCount = items.length - open.length;
+    document.getElementById('cnt-kids').textContent = open.length;
+    grp.style.display = 'block';
+    list.innerHTML = (open.length
+        ? open.map(i => `<div class="ks-item"><span class="ks-box" aria-hidden="true"></span><span>${esc(i.text)}</span></div>`).join('')
+        : '<div class="cal-empty" style="padding:10px 8px;">Nothing open 🎉</div>')
+      + `<div class="ks-foot"><span>${doneCount ? doneCount + ' checked off' : ''}</span><a href="${KIDS_DOC_EDIT_URL}" target="_blank" rel="noopener">Open doc to check off ↗</a></div>`;
+  }
+
   function renderCalendar() {
     const today = todayStr();
-    const todayEvents = calendarEvents.filter(e => e.start && e.start.slice(0,10) === today);
-    const futureEvents = calendarEvents.filter(e => e.start && e.start.slice(0,10) > today);
+    const tomorrow = addDays(today, 1);
+    const evDate = e => e.start ? e.start.slice(0,10) : '';
+    const todayEvents = calendarEvents.filter(e => evDate(e) === today);
+    const tomorrowEvents = calendarEvents.filter(e => evDate(e) === tomorrow);
+    const laterEvents = calendarEvents.filter(e => evDate(e) > tomorrow);
 
-    // Today's events
+    // Today, then a subtle divider, then tomorrow (dimmed)
     const todayEl = document.getElementById('cal-today');
-    if (todayEvents.length === 0) {
-      todayEl.innerHTML = '<div style="font-size:13px;color:var(--text-dim);padding:8px 0;">No events today ✨</div>';
-    } else {
-      todayEl.innerHTML = '';
-      todayEvents.forEach(e => { todayEl.innerHTML += buildCalCard(e); });
-    }
+    let html = todayEvents.length
+      ? todayEvents.map(buildCalCard).join('')
+      : '<div class="cal-empty">Nothing on the calendar today</div>';
+    html += '<div class="day-divider" role="separator" aria-label="Tomorrow"></div>';
+    html += '<div class="tomorrow-events">' + (tomorrowEvents.length
+      ? tomorrowEvents.map(buildCalCard).join('')
+      : '<div class="cal-empty">Nothing tomorrow</div>') + '</div>';
+    todayEl.innerHTML = html;
 
-    // This week
+    // This week (after tomorrow)
     const weekEl = document.getElementById('cal-week');
-    if (futureEvents.length === 0) {
-      weekEl.innerHTML = '<div style="font-size:13px;color:var(--text-dim);padding:8px 0;">No upcoming events this week</div>';
+    const cntEl = document.getElementById('week-count');
+    if (cntEl) cntEl.textContent = laterEvents.length ? `· ${laterEvents.length} event${laterEvents.length>1?'s':''}` : '· nothing else';
+    if (laterEvents.length === 0) {
+      weekEl.innerHTML = '<div class="cal-empty" style="padding:8px 6px;">No other events this week</div>';
     } else {
-      weekEl.innerHTML = '';
-      let lastDate = '';
-      futureEvents.forEach(e => {
-        const eDate = e.start.slice(0,10);
+      let out = '', lastDate = '';
+      laterEvents.forEach(e => {
+        const eDate = evDate(e);
         if (eDate !== lastDate) {
           const d = new Date(eDate + 'T12:00:00');
-          weekEl.innerHTML += `<div class="cal-week-day">${dayNames[d.getDay()]}, ${fmtDate(eDate)}</div>`;
+          out += `<div class="cal-week-day">${dayNames[d.getDay()]}, ${fmtDate(eDate)}</div>`;
           lastDate = eDate;
         }
-        weekEl.innerHTML += buildCalCard(e);
+        out += buildCalCard(e);
       });
+      weekEl.innerHTML = out;
     }
   }
 
@@ -1239,6 +1360,7 @@
   function initGate() {
     generateRecurring();
     fetchCalendar();
+    fetchKidsSchool();
     // SMS inbox retired (Twilio verification rejected, Oct 2026)
     const today = todayStr();
     if (D.gateLog[today]) {
@@ -1329,6 +1451,7 @@
     document.getElementById('app-greeting').textContent = greeting();
     document.getElementById('app-date').textContent = fullDate();
     renderHabits();
+    renderLunchCard();
     renderTodaySection();
     renderTasksSection();
     renderHorizons();
@@ -1357,7 +1480,6 @@
           <div class="habit-info">
             <div class="habit-name">${h.icon} ${h.name}</div>
             <div class="habit-detail">${formatHabitDays(h.days)}</div>
-            ${/lunch/i.test(h.name) ? lunchMenuLink() : ''}
           </div>
           <button class="t-btn" style="flex:0;padding:4px 10px;font-size:11px;" data-delhid="${h.id}">✕</button>
         </div>`;
@@ -1404,21 +1526,21 @@
     const today = todayStr();
     const active = activeTasks();
 
-    // Sunday review banner
+    // Sunday review banner (+ backup nudge)
     const reviewContainer = document.getElementById('sunday-review-container');
     if (isSunday()) {
       const lowCount = active.filter(t => t.priority === 'low').length;
       let reviewHTML = `
         <div class="sunday-review">
           <h3>📋 Sunday Weekly Review</h3>
-          <p>You have ${lowCount} low-priority task${lowCount!==1?'s':''} to review below.<br>Bump anything up that needs attention this week.</p>
+          <p>You have ${lowCount} low-priority task${lowCount!==1?'s':''}. Open Low priority below and bump anything that needs attention this week.</p>
         </div>`;
-      if (isFirstSunday()) {
-        const hzCount = D.horizons.filter(h => h.status === 'active').length;
+      const sinceBackup = D.lastBackup ? diffDays(today, D.lastBackup) : null;
+      if (sinceBackup === null || sinceBackup >= 14) {
         reviewHTML += `
           <div class="monthly-review">
-            <h3>🔭 Monthly Horizons Review</h3>
-            <p>You have ${hzCount} long-term priorit${hzCount!==1?'ies':'y'}. Check the Horizons tab to review — promote anything that's ready for action.</p>
+            <h3>⬇️ Back up Focus Flow</h3>
+            <p>${sinceBackup === null ? 'You haven\'t backed up yet.' : `Last backup was ${sinceBackup} days ago.`} Tap "Back Up" at the bottom of this page.</p>
           </div>`;
       }
       reviewContainer.innerHTML = reviewHTML;
@@ -1426,47 +1548,69 @@
       reviewContainer.innerHTML = '';
     }
 
-    // Overdue (any priority)
-    const overdue = active.filter(t => t.dueDate && t.dueDate < today);
-    renderSection('overdue-label', 'overdue-tasks', sortByEscalation(overdue));
+    // Overdue (any priority) — highlighted, always open
+    const isOverdue = t => t.dueDate && t.dueDate < today;
+    const overdue = sortByEscalation(active.filter(isOverdue));
+    const odWrap = document.getElementById('overdue-wrap');
+    const odEl = document.getElementById('overdue-tasks');
+    if (overdue.length) {
+      odWrap.style.display = 'block';
+      odEl.innerHTML = overdue.map(buildTaskCard).join('');
+      attachTaskActions(odEl);
+    } else { odWrap.style.display = 'none'; odEl.innerHTML = ''; }
 
-    // High priority (always visible)
-    const high = active.filter(t => t.priority === 'high' && !(t.dueDate && t.dueDate < today));
-    renderSection('high-today-label', 'high-today-tasks', high);
-
-    // Medium priority (always visible)
-    const med = active.filter(t => t.priority === 'med' && !(t.dueDate && t.dueDate < today));
-    renderSection('med-today-label', 'med-today-tasks', med);
-
-    // Low priority (Sundays only)
-    const lowLabel = document.getElementById('low-today-label');
-    const lowEl = document.getElementById('low-today-tasks');
-    if (isSunday()) {
-      const low = active.filter(t => t.priority === 'low' && !(t.dueDate && t.dueDate < today));
-      if (low.length > 0) {
-        lowLabel.style.display = 'block';
-        lowEl.innerHTML = '';
-        low.forEach(t => { lowEl.innerHTML += buildTaskCard(t); });
-        attachTaskActions(lowEl);
-      } else {
-        lowLabel.style.display = 'none'; lowEl.innerHTML = '';
-      }
-    } else {
-      lowLabel.style.display = 'none'; lowEl.innerHTML = '';
-    }
+    // High / Med / Low — collapsible, collapsed by default (open state kept while the app is open)
+    ['high','med','low'].forEach(p => {
+      let list = active.filter(t => t.priority === p && !isOverdue(t));
+      list = sortByEscalation(list);
+      if (p === 'low') list = list.filter(t => !t.someday).concat(list.filter(t => t.someday));
+      const grp = document.getElementById('grp-' + p);
+      const body = document.getElementById(p + '-today-tasks');
+      document.getElementById('cnt-' + p).textContent = list.length;
+      if (list.length) {
+        grp.style.display = 'block';
+        body.innerHTML = list.map(buildTaskCard).join('');
+        attachTaskActions(body);
+      } else { grp.style.display = 'none'; body.innerHTML = ''; }
+    });
   }
 
-  function renderSection(labelId, containerId, tasks) {
-    const label = document.getElementById(labelId);
-    const el = document.getElementById(containerId);
-    if (tasks.length > 0) {
-      label.style.display = 'block';
-      el.innerHTML = '';
-      tasks.forEach(t => { el.innerHTML += buildTaskCard(t); });
-      attachTaskActions(el);
-    } else {
-      label.style.display = 'none'; el.innerHTML = '';
-    }
+  // ── Lunch card: per-kid Hot lunch / Pack for the next lunch ──
+  const KIDS = ['Amelia', 'Scottie'];
+  function lunchTarget() {
+    const d = new Date();
+    if (d.getHours() >= 12) d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    const pad = n => String(n).padStart(2, '0');
+    return { iso: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, label: `${shortDays[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}` };
+  }
+  function renderLunchCard() {
+    const el = document.getElementById('lunch-card');
+    if (!el) return;
+    const { iso, label } = lunchTarget();
+    const plan = D.lunchPlan[iso] || {};
+    const packCount = KIDS.filter(k => plan[k] === 'pack').length;
+    const decided = KIDS.filter(k => plan[k]).length;
+    el.innerHTML = `
+      <div class="lunch-head">
+        <div class="section-label">🥪 Lunch · ${label}</div>
+        <a class="lunch-link" href="https://olgschool.flikisdining.com/menu/dining-hall/lunch/${iso}" target="_blank" rel="noopener">🍽️ Hot lunch menu</a>
+      </div>
+      ${KIDS.map(k => `
+        <div class="lunch-row"><span>${k}</span>
+          <div class="seg" role="group" aria-label="${k} lunch">
+            <button class="${plan[k]==='hot'?'on':''}" data-kid="${k}" data-lunch="hot">Hot lunch</button>
+            <button class="${plan[k]==='pack'?'on':''}" data-kid="${k}" data-lunch="pack">Pack</button>
+          </div>
+        </div>`).join('')}
+      <div class="lunch-sum">${decided === KIDS.length ? (packCount === 0 ? 'No lunches to pack' : `Pack ${packCount} lunch${packCount>1?'es':''}`) : 'Check the menu, then pick for each kid'}</div>`;
+    el.querySelectorAll('[data-lunch]').forEach(b => b.addEventListener('click', () => {
+      const p = D.lunchPlan[iso] || (D.lunchPlan[iso] = {});
+      p[b.dataset.kid] = p[b.dataset.kid] === b.dataset.lunch ? undefined : b.dataset.lunch;
+      // keep only the last ~30 days of lunch picks
+      Object.keys(D.lunchPlan).sort().slice(0, -30).forEach(k => delete D.lunchPlan[k]);
+      save(D); renderLunchCard();
+    }));
   }
 
   // ── Tasks Section (all tasks) ──
@@ -1532,8 +1676,9 @@
       else if (diff <= 3) meta += `<span class="due-soon">Due ${fmtDate(task.dueDate)}</span>`;
       else meta += `<span>Due ${fmtDate(task.dueDate)}</span>`;
     }
+    if (task.someday) meta += `<span class="someday-tag">🔭 Someday</span>`;
     const age = diffDays(today, task.createdDate);
-    if (age > 0) meta += `<span>Added ${age}d ago</span>`;
+    if (age > 0 && !task.someday) meta += `<span>Added ${age}d ago</span>`;
 
     // Build checklist HTML if present
     let checklistHTML = '';
@@ -1820,25 +1965,11 @@
 
   // ── Handle priority change to "horizon" ──
   function handlePriChange(tid, newPri) {
-    if (newPri === 'horizon') {
-      // Move task to horizons
-      const t = D.tasks.find(t => t.id === tid);
-      if (t) {
-        D.horizons.push({
-          id: 'hz_' + Date.now(),
-          title: t.title,
-          notes: '',
-          category: t.category || 'general',
-          createdDate: t.createdDate || todayStr(),
-          status: 'active',
-          sortOrder: D.horizons.length,
-        });
-        D.tasks = D.tasks.filter(x => x.id !== tid);
-        save(D);
-      }
-    } else {
-      const t = D.tasks.find(t => t.id === tid);
-      if (t) { t.priority = newPri; save(D); }
+    const t = D.tasks.find(t => t.id === tid);
+    if (t) {
+      if (newPri === 'horizon') { t.priority = 'low'; t.someday = true; }
+      else { t.priority = newPri; t.someday = false; }
+      save(D);
     }
     document.getElementById('pri-modal').classList.remove('open');
     renderApp();
@@ -2064,6 +2195,49 @@
     }
     navigator.clipboard.writeText(s).then(()=>alert('Summary copied!')).catch(()=>prompt('Copy:',s));
   });
+
+  // ── Backup / Restore ──
+  function renderBackupNote() {
+    const n = document.getElementById('backup-note');
+    if (n) n.textContent = D.lastBackup ? `Last backup: ${fmtDate(D.lastBackup)}` : 'Not backed up yet';
+  }
+  document.getElementById('backup-btn').addEventListener('click', async () => {
+    D.lastBackup = todayStr(); save(D);
+    const payload = JSON.stringify({ app: 'focusflow', storageKey: SK, exportedAt: new Date().toISOString(), data: D }, null, 2);
+    const name = `focusflow-backup-${todayStr()}.json`;
+    try {
+      const file = new File([payload], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Focus Flow backup' });
+        renderBackupNote(); renderTodaySection(); return;
+      }
+    } catch (err) { if (err && err.name === 'AbortError') { return; } }
+    const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    renderBackupNote(); renderTodaySection();
+  });
+  const restoreFile = document.getElementById('restore-file');
+  document.getElementById('restore-btn').addEventListener('click', () => restoreFile.click());
+  restoreFile.addEventListener('change', () => {
+    const f = restoreFile.files && restoreFile.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const data = parsed && parsed.data ? parsed.data : parsed;
+        if (!data || !Array.isArray(data.habits) || !Array.isArray(data.tasks)) throw new Error('Not a Focus Flow backup');
+        const when = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString() : 'an unknown date';
+        if (!confirm(`Restore the backup from ${when}? This replaces everything currently in Focus Flow on this device.`)) return;
+        localStorage.setItem(SK, JSON.stringify(data));
+        location.reload();
+      } catch (err) { alert('That file isn\'t a Focus Flow backup, so nothing was changed.'); }
+      restoreFile.value = '';
+    };
+    reader.readAsText(f);
+  });
+  renderBackupNote();
 
   // ── Reset ──
   document.getElementById('reset-btn').addEventListener('click', () => {
